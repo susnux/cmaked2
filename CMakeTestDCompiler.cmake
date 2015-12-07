@@ -6,7 +6,7 @@
 #
 # All rights reserved.
 #
-# See Copyright.txt for details.
+# See LICENSE for details.
 #
 # Modified from CMake 2.6.5 CMakeTestCCompiler.cmake
 # See http://www.cmake.org/HTML/Copyright.html for details
@@ -79,17 +79,7 @@ IF(NOT CMAKE_D_PHOBOS_WORKS)
     "import std.stdio;\n"
     "int main(char[][] args)\n"
     "{ writefln(\"%s\", args[0]); return args.sizeof-1;}\n")
-  IF(CMAKE_COMPILER_IS_GDC)
-      IF(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-	  	TRY_COMPILE(CMAKE_D_PHOBOS_WORKS ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/testDCompiler.d
-		     #CMAKE_FLAGS "-DLINK_LIBRARIES=gphobos"
-		     OUTPUT_VARIABLE OUTPUT) 
-      ELSE(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-	  	TRY_COMPILE(CMAKE_D_PHOBOS_WORKS ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/testDCompiler.d
-		     CMAKE_FLAGS "-DLINK_LIBRARIES=gphobos"
-		     OUTPUT_VARIABLE OUTPUT) 
-      ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-  ELSE(CMAKE_COMPILER_IS_GDC)
+  if(CMAKE_COMPILER_IS_DMD)
       IF(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 	  	TRY_COMPILE(CMAKE_D_PHOBOS_WORKS ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/testDCompiler.d
 		     OUTPUT_VARIABLE OUTPUT) 
@@ -99,7 +89,7 @@ IF(NOT CMAKE_D_PHOBOS_WORKS)
 		     COMPILE_DEFINITIONS "-I${D_PATH}/include -I${D_PATH}/import"
 		     OUTPUT_VARIABLE OUTPUT) 
       ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-  ENDIF(CMAKE_COMPILER_IS_GDC)
+  ENDIF(CMAKE_COMPILER_IS_DMD)
   SET(C_TEST_WAS_RUN 1)
 ENDIF(NOT CMAKE_D_PHOBOS_WORKS)
 
