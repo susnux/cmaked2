@@ -1,6 +1,7 @@
 #
 # CMakeD - CMake module for D Language
 #
+# Copyright (c) 2015, Ferdinand Thiessen <rpm@fthiessen.de>
 # Copyright (c) 2007, Selman Ulug <selman.ulug@gmail.com>
 #                     Tim Burrell <tim.burrell@gmail.com>
 #
@@ -12,19 +13,23 @@
 # See http://www.cmake.org/HTML/Copyright.html for details
 #
 
-# This file sets the basic flags for the D language in CMake.
-# It also loads the available platform file for the system-compiler
-# if it exists.
+include(CMakeCommonLanguageInclude)
 
-GET_FILENAME_COMPONENT(CMAKE_BASE_NAME ${CMAKE_D_COMPILER} NAME_WE)
-IF(CMAKE_COMPILER_IS_GDC)
-  SET(CMAKE_BASE_NAME gdc)
-ELSE(CMAKE_COMPILER_IS_GDC)
-  SET(CMAKE_BASE_NAME dmd)
-ENDIF(CMAKE_COMPILER_IS_GDC)
-SET(CMAKE_SYSTEM_AND_D_COMPILER_INFO_FILE 
-  ${CMAKE_ROOT}/Modules/Platform/${CMAKE_SYSTEM_NAME}-${CMAKE_BASE_NAME}.cmake)
-INCLUDE(Platform/${CMAKE_SYSTEM_NAME}-${CMAKE_BASE_NAME} OPTIONAL)
+# some compilers use different extensions, so set the extension here
+# first so it can be overridden by the compiler specific file
+if(UNIX)
+	set(CMAKE_D_OUTPUT_EXTENSION .o)
+else()
+	set(CMAKE_D_OUTPUT_EXTENSION .obj)
+endif()
+
+# Compiler specific
+if(CMAKE_D_COMPILER_ID)
+	include(Compiler/${CMAKE_D_COMPILER_ID}-D OPTIONAL)
+
+# Platform specific
+	include(Platform/${CMAKE_SYSTEM_NAME}-${CMAKE_D_COMPILER_ID} OPTIONAL)
+endif()
 
 # This should be included before the _INIT variables are
 # used to initialize the cache.  Since the rule variables 
@@ -32,13 +37,13 @@ INCLUDE(Platform/${CMAKE_SYSTEM_NAME}-${CMAKE_BASE_NAME} OPTIONAL)
 # But, it should still be after the platform file so changes can
 # be made to those values.
 
-IF(CMAKE_USER_MAKE_RULES_OVERRIDE)
-   INCLUDE(${CMAKE_USER_MAKE_RULES_OVERRIDE})
-ENDIF(CMAKE_USER_MAKE_RULES_OVERRIDE)
+if(CMAKE_USER_MAKE_RULES_OVERRIDE)
+	include(${CMAKE_USER_MAKE_RULES_OVERRIDE})
+endif(CMAKE_USER_MAKE_RULES_OVERRIDE)
 
-IF(CMAKE_USER_MAKE_RULES_OVERRIDE_D)
-   INCLUDE(${CMAKE_USER_MAKE_RULES_OVERRIDE_D})
-ENDIF(CMAKE_USER_MAKE_RULES_OVERRIDE_D)
+if(CMAKE_USER_MAKE_RULES_OVERRIDE_D)
+	include(${CMAKE_USER_MAKE_RULES_OVERRIDE_D})
+endif(CMAKE_USER_MAKE_RULES_OVERRIDE_D)
 
 # for most systems a module is the same as a shared library
 # so unless the variable CMAKE_MODULE_EXISTS is set just
@@ -66,14 +71,6 @@ IF(NOT CMAKE_NOT_USING_CONFIG_FLAGS)
   SET (CMAKE_D_FLAGS_RELWITHDEBINFO "${CMAKE_D_FLAGS_RELWITHDEBINFO_INIT}" CACHE STRING
     "Flags used by the compiler during Release with Debug Info builds.")
 ENDIF(NOT CMAKE_NOT_USING_CONFIG_FLAGS)
-
-IF(CMAKE_D_STANDARD_LIBRARIES_INIT)
-  SET(CMAKE_D_STANDARD_LIBRARIES "${CMAKE_D_STANDARD_LIBRARIES_INIT}"
-    CACHE STRING "Libraries linked by defalut with all D applications.")
-  MARK_AS_ADVANCED(CMAKE_D_STANDARD_LIBRARIES)
-ENDIF(CMAKE_D_STANDARD_LIBRARIES_INIT)
-
-INCLUDE(CMakeCommonLanguageInclude)
 
 # now define the following rule variables
 
@@ -115,53 +112,6 @@ ELSE("$ENV{D_PATH}" STREQUAL "")
 ENDIF("$ENV{D_PATH}" STREQUAL "")
 MESSAGE(STATUS "D Compiler Install Prefix (use D_PATH env var to override): ${D_PATH}")
 
-IF(CMAKE_COMPILER_IS_GDC)
-  SET(CMAKE_OUTPUT_D_FLAG "-o ")
-  SET(CMAKE_SHARED_LIBRARY_D_FLAGS "-fPIC")
-  SET(CMAKE_SHARED_LIBRARY_CREATE_D_FLAGS "-shared")
-  SET(CMAKE_INCLUDE_FLAG_D "-I")       # -I
-  SET(CMAKE_INCLUDE_FLAG_D_SEP "")     # , or empty
-  SET(CMAKE_LIBRARY_PATH_FLAG "-L")
-  SET(CMAKE_LINK_LIBRARY_FLAG "-l")
-  SET(CMAKE_D_VERSION_FLAG "-fversion=")
-ELSE(CMAKE_COMPILER_IS_GDC)
-  SET(CMAKE_OUTPUT_D_FLAG "-of")
-  SET(CMAKE_D_VERSION_FLAG "-version=")
-  IF(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    SET(CMAKE_INCLUDE_FLAG_D "-I")       # -I
-    SET(CMAKE_INCLUDE_FLAG_D_SEP "")     # , or empty
-    SET(CMAKE_LINK_LIBRARY_FLAG "-L+")
-    SET(CMAKE_LIBRARY_PATH_FLAG "-L+")
-    SET(CMAKE_LIBRARY_PATH_TERMINATOR "\\")
-    FIND_PROGRAM(DMD_LIBRARIAN "lib.exe")
-  ELSE(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    SET(CMAKE_SHARED_LIBRARY_D_FLAGS "-fPIC")
-    SET(CMAKE_SHARED_LIBRARY_CREATE_D_FLAGS "-shared")
-    SET(CMAKE_INCLUDE_FLAG_D "-I")       # -I
-    SET(CMAKE_INCLUDE_FLAG_D_SEP "")     # , or empty
-    SET(CMAKE_LIBRARY_PATH_FLAG "-L")
-  ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-ENDIF(CMAKE_COMPILER_IS_GDC)
-
-IF(CMAKE_D_USE_TANGO)
-	IF(CMAKE_COMPILER_IS_GDC)
-		SET(DSTDLIB_TYPE "-fversion=Tango")
-		SET(DSTDLIB_FLAGS "-lgtango")
-	ELSE(CMAKE_COMPILER_IS_GDC)
-		SET(DSTDLIB_TYPE "-version=Tango")
-		SET(DSTDLIB_FLAGS "-L${D_PATH}/lib -ltango -lphobos")
-	ENDIF(CMAKE_COMPILER_IS_GDC)
-ENDIF(CMAKE_D_USE_TANGO)
-IF(CMAKE_D_USE_PHOBOS)
-	IF(CMAKE_COMPILER_IS_GDC)
-		SET(DSTDLIB_TYPE "-fversion=Phobos")
-		SET(DSTDLIB_FLAGS "-lgphobos")
-	ELSE(CMAKE_COMPILER_IS_GDC)
-		SET(DSTDLIB_TYPE "-version=Phobos")
-		SET(DSTDLIB_FLAGS "-L${D_PATH}/lib -lphobos")
-	ENDIF(CMAKE_COMPILER_IS_GDC)
-ENDIF(CMAKE_D_USE_PHOBOS)
-
 # create a D shared library
 IF(NOT CMAKE_D_CREATE_SHARED_LIBRARY)
   IF(CMAKE_COMPILER_IS_GDC)
@@ -180,31 +130,31 @@ ENDIF(NOT CMAKE_D_CREATE_SHARED_MODULE)
 
 # create a D static library
 IF(NOT CMAKE_D_CREATE_STATIC_LIBRARY)
-  IF(CMAKE_COMPILER_IS_GDC)
-	IF(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    		SET(CMAKE_D_CREATE_STATIC_LIBRARY
-	      	"<CMAKE_AR> cr <TARGET>.lib <LINK_FLAGS> <OBJECTS> "
-	      	"<CMAKE_RANLIB> <TARGET>.lib "
-      		"<CMAKE_AR> cr <TARGET> <LINK_FLAGS> <OBJECTS> "
-		      "<CMAKE_RANLIB> <TARGET> "
-	      )
-	ELSE(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    		SET(CMAKE_D_CREATE_STATIC_LIBRARY
-      		"<CMAKE_AR> cr <TARGET> <LINK_FLAGS> <OBJECTS> "
-		      "<CMAKE_RANLIB> <TARGET> "
-	      )
-	ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-  ELSE(CMAKE_COMPILER_IS_GDC)
-    IF(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-      SET(CMAKE_D_CREATE_STATIC_LIBRARY
-	"<CMAKE_AR> cr <TARGET> <LINK_FLAGS> <OBJECTS>"
-	"<CMAKE_RANLIB> <TARGET>")
-    ELSE(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-      SET(CMAKE_D_CREATE_STATIC_LIBRARY
-	"${DMD_LIBRARIAN} -c -p256 <TARGET> <OBJECTS>")
-    ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  ENDIF(CMAKE_COMPILER_IS_GDC)  
-ENDIF(NOT CMAKE_D_CREATE_STATIC_LIBRARY)
+	if(CMAKE_D_COMPILER_ID STREQUAL "DMD")
+		if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+			set(CMAKE_D_CREATE_STATIC_LIBRARY
+				"<CMAKE_AR> cr <TARGET> <LINK_FLAGS> <OBJECTS>"
+				"<CMAKE_RANLIB> <TARGET>")
+		else(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+			set(CMAKE_D_CREATE_STATIC_LIBRARY
+				"${DMD_LIBRARIAN} -c -p256 <TARGET> <OBJECTS>")
+		endif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+	else(CMAKE_D_COMPILER_ID STREQUAL "DMD")
+		if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    		set(CMAKE_D_CREATE_STATIC_LIBRARY
+				"<CMAKE_AR> cr <TARGET>.lib <LINK_FLAGS> <OBJECTS> "
+				"<CMAKE_RANLIB> <TARGET>.lib "
+				"<CMAKE_AR> cr <TARGET> <LINK_FLAGS> <OBJECTS> "
+				"<CMAKE_RANLIB> <TARGET> "
+			)
+		else(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    		set(CMAKE_D_CREATE_STATIC_LIBRARY
+				"<CMAKE_AR> cr <TARGET> <LINK_FLAGS> <OBJECTS> "
+				"<CMAKE_RANLIB> <TARGET> "
+			)
+		endif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+	endif(CMAKE_D_COMPILER_ID STREQUAL "DMD")
+endif(NOT CMAKE_D_CREATE_STATIC_LIBRARY)
 
 # compile a D file into an object file
 IF(NOT CMAKE_D_COMPILE_OBJECT)

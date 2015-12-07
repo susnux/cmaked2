@@ -1,0 +1,1 @@
+set(DSTDLIB_FLAGS "-ldruntime-ldc -lphobos2-ldc")
